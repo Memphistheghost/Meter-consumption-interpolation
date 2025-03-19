@@ -1,7 +1,5 @@
 # Meter-consumption-interpolation
 
-# Meter Consumption Interpolation
-
 This project provides an **interpolation application** for estimating **electricity, water, heating, and cooling consumption** based on **seasonal coefficients** and historical temperature data. The application is built with **Flask**, utilizes **Pandas** for data processing, and fetches temperature data from **DWD** (German Weather Service) and **OpenWeather API**.
 
 ## Features
