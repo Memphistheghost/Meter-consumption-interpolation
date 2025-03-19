@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ETA+ Interpolation Applikation</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f9;
+            margin: 0;
+            padding: 0;
+        }
+
+        h1 {
+            text-align: center;
+            padding-top: 20px;
+            color: #333;
+            font-size: 2.5rem;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 40px;
+            background-color: white;
+            box-shadow: 0 0 15px rgba(0, 0, 0, 0.1);
+            border-radius: 15px;
+            margin-top: 50px;
+        }
+
+        .logo {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        .logo img {
+            max-width: 200px;
+        }
+
+        form {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        label {
+            font-weight: bold;
+            font-size: 1.1rem;
+        }
+
+        input, select, button {
+            padding: 14px;
+            font-size: 18px;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            width: 100%;
+            box-sizing: border-box;
+        }
+
+        button {
+            background-color: #0013a8;
+            color: white;
+            font-size: 1.2rem;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+
+        button:hover {
+            background-color: #0026d2;
+        }
+
+        .footer-text {
+            text-align: center;
+            margin-top: 20px;
+            color: #333;
+            font-size: 1rem;
+        }
+
+        .footer-text a {
+            color: #0013a8;
+            text-decoration: none;
+        }
+
+        .footer-text a:hover {
+            text-decoration: underline;
+        }
+
+        .hidden {
+            display: none;
+        }
+    </style>
+    <script>
+        // Function to toggle the visibility of the "wert_jahr2" input field
+        function toggleVorJahreswert() {
+            const checkbox = document.getElementById('vor_jahreswert_checkbox');
+            const vorJahreswertInput = document.getElementById('vor_jahreswert_section');
+            if (checkbox.checked) {
+                vorJahreswertInput.classList.remove('hidden');
+            } else {
+                vorJahreswertInput.classList.add('hidden');
+            }
+        }
+
+        // Function to toggle the visibility of fields based on the selected energy type
+        // Function to toggle the visibility of fields based on the selected energy type
+        function toggleBuildingFields() {
+            const typ = document.getElementById('typ').value;
+            const buildingFields = document.getElementById('building_fields');
+            const raumtemperaturField = document.getElementById('raumtemperatur_field');
+            const buildingSizeInput = document.getElementById('building_size');
+            const occupancyInput = document.getElementById('occupancy');
+
+            // Show building fields for "electricity" and "water"
+            if (typ === 'electricity' || typ === 'water') {
+                buildingFields.classList.remove('hidden');
+                buildingSizeInput.removeAttribute('required'); // Make optional
+                occupancyInput.removeAttribute('required'); // Make optional
+                raumtemperaturField.classList.add('hidden'); // Hide room temperature field
+            } else {
+                buildingFields.classList.add('hidden');
+                buildingSizeInput.removeAttribute('required'); // Remove required attribute
+                occupancyInput.removeAttribute('required'); // Remove required attribute
+                raumtemperaturField.classList.remove('hidden'); // Show room temperature field for heating/cooling
+            }
+        }
+        // Function to validate the form before submission
+        function validateForm() {
+            const typ = document.getElementById('typ').value;
+            const buildingSizeInput = document.getElementById('building_size').value;
+            const occupancyInput = document.getElementById('occupancy').value;
+
+            // Only show an alert if fields are empty when required for electricity or water
+            if ((typ === 'electricity' || typ === 'water') && (!buildingSizeInput && !occupancyInput)) {
+                if (!confirm('Gebäudefläche und Anzahl der täglichen Mitarbeiter sind leer. Möchten Sie ohne diese Werte fortfahren?')) {
+                    return false; // Prevent form submission
+                }
+            }
+            return true;
+        }
+    </script>
+</head>
+<body>
+    <div class="container">
+        <!-- Logo Section -->
+        <div class="logo">
+            <img src="/static/images/eta_plus_logo.png" alt="ETA+ Logo">
+        </div>
+
+        <h1>Interpolation für Energieverbrauch</h1>
+
+        <form action="/interpolate" method="POST" onsubmit="return validateForm()">
+            <label for="typ">Art der Energie:</label>
+            <select id="typ" name="typ" onchange="toggleBuildingFields()">
+                <option value="waerme">Wärmemenge (Heizung)</option>
+                <option value="kaelte">Kältemenge (Kühlung)</option>
+                <option value="electricity">Stromverbrauch (Elektrizität)</option>
+                <option value="water">Wasserverbrauch</option>
+            </select>
+
+            <label for="region">Stadt oder Region:</label>
+            <select id="region" name="region">
+                {% for region in regions %}
+                    <option value="{{ region }}">{{ region }}</option>
+                {% endfor %}
+            </select>
+
+            <label for="start_date">Startdatum (Erster Tag des Zeitraums):</label>
+            <input type="text" id="start_date" name="start_date" placeholder="z.B. 01.01.2023" required>
+
+            <label for="end_date">Enddatum (Letzter Tag des Zeitraums):</label>
+            <input type="text" id="end_date" name="end_date" placeholder="z.B. 31.12.2023" required>
+
+            <label for="wert_jahr1">Gesamter Jahres Verbrauchswert (kWh oder m³):</label>
+            <input type="number" id="wert_jahr1" name="wert_jahr1" placeholder="Beispiel: 5000 kWh" required>
+
+            <!-- Checkbox for Vor-Jahreswert -->
+            <label>
+                <input type="checkbox" id="vor_jahreswert_checkbox" onclick="toggleVorJahreswert()">
+                Vor-Jahresverbrauchswert eingeben
+            </label>
+
+            <!-- Hidden section for the optional vor-Jahreswert input -->
+            <div id="vor_jahreswert_section" class="hidden">
+                <label for="wert_jahr2">Gesamter vor-Jahres Verbrauchswert (kWh) (optional):</label>
+                <input type="number" id="wert_jahr2" name="wert_jahr2" placeholder="Optional">
+            </div>
+
+            <!-- Room temperature field, shown only for heating/cooling -->
+            <div id="raumtemperatur_field">
+                <label for="raumtemperatur">Raumtemperatur (optional, Standard: 18°C):</label>
+                <input type="number" id="raumtemperatur" name="raumtemperatur" value="18" placeholder="Standard: 18°C">
+            </div>
+
+            <!-- Building-related fields, hidden by default -->
+            <div id="building_fields" class="hidden">
+                <label for="building_size">Gebäudefläche (in m²) (optional):</label>
+                <input type="number" id="building_size" name="building_size" placeholder="z.B. 5000">
+
+                <label for="occupancy">Anzahl der täglichen Mitarbeiter (optional):</label>
+                <input type="number" id="occupancy" name="occupancy" placeholder="z.B. 100">
+            </div>
+            <button type="submit">Interpolation starten</button>
+        </form>
+    </div>
+</body>
+</html>
